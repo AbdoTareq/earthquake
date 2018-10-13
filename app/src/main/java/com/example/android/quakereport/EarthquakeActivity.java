@@ -15,10 +15,15 @@
  */
 package com.example.android.quakereport;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -40,7 +45,7 @@ public class EarthquakeActivity extends AppCompatActivity {
 //        earthquakes.add(new Earthquake(4.9, "Rio de Janeiro","Feb 2, 2016"));
 //        earthquakes.add(new Earthquake(1.6, "Paris","Feb 2, 2016"));
 
-        ArrayList<Earthquake> earthquakes = QueryUtils.extractEarthquakes();
+        final ArrayList<Earthquake> earthquakes = QueryUtils.extractEarthquakes();
 
         // Find a reference to the {@link ListView} in the layout
         ListView earthquakeListView = (ListView) findViewById(R.id.list);
@@ -52,5 +57,17 @@ public class EarthquakeActivity extends AppCompatActivity {
         if (earthquakeListView != null) {
             earthquakeListView.setAdapter(earthquakeAdapter);
         }
+
+        assert earthquakeListView != null;
+        earthquakeListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String url = earthquakes.get(position).getmUrl();
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url));
+                startActivity(i);
+            }
+        });
+
     }
 }

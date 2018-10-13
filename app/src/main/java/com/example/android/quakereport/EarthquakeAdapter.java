@@ -1,14 +1,18 @@
 package com.example.android.quakereport;
 
 import android.app.Activity;
+import android.graphics.drawable.GradientDrawable;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.sql.Date;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 /*
@@ -17,6 +21,7 @@ import java.util.ArrayList;
  * */
 public class EarthquakeAdapter extends ArrayAdapter<Earthquake> {
 
+    private static final String LOCATION_SEPARATOR = " of ";
 
     /**
      * This is our own custom constructor (it doesn't mirror a superclass constructor).
@@ -46,61 +51,150 @@ public class EarthquakeAdapter extends ArrayAdapter<Earthquake> {
     @NonNull
     @Override
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-        // Check if the existing view is being reused, otherwise inflate the view
+        // Check if there is an existing list item view (called convertView) that we can reuse,
+        // otherwise, if convertView is null, then inflate a new list item layout.
         View listItemView = convertView;
         if (listItemView == null) {
             listItemView = LayoutInflater.from(getContext()).inflate(
                     R.layout.earthquake_item, parent, false);
         }
 
-        // Get the {@link SearchHistory} object located at this position in the list
-        Earthquake earthquake = getItem(position);
+        // Find the earthquake at the given position in the list of earthquakes
+        Earthquake currentEarthquake = getItem(position);
+        assert currentEarthquake != null;
+        String originalLocation = currentEarthquake.getmLocation();
 
-        // Find the TextView in the list_item.xml layout with the ID version_name
-        TextView magTextView = (TextView) listItemView.findViewById(R.id.mag);
-        // Get the  mag from the current earthquake object and
-        // set this text on the name TextView
-        if (earthquake != null) {
-            magTextView.setText(""+earthquake.getmMag());
+        String locationOffset = "";
+        String primaryLocation = "";
+        if (originalLocation.contains(LOCATION_SEPARATOR)) {
+            String[] parts = originalLocation.split(LOCATION_SEPARATOR);
+            locationOffset = parts[0] + LOCATION_SEPARATOR;
+            primaryLocation = parts[1];
         } else {
-            magTextView.setText("mag is null");
-
+            locationOffset = getContext().getString(R.string.near_the);
+            primaryLocation = originalLocation;
         }
 
-
-        // Find the TextView in the list_item.xml layout with the ID version_name
-        TextView locTextView = (TextView) listItemView.findViewById(R.id.location);
-        // Get the version name from the current SearchHistory object and
-        // set this text on the name TextView
-        if (earthquake != null) {
-            locTextView.setText(earthquake.getmLocation());
-        } else {
-            locTextView.setText("loc is null");
-
-        }
-
-        // Find the TextView in the list_item.xml layout with the ID version_name
-        TextView dateTextView = (TextView) listItemView.findViewById(R.id.date);
-        // Get the date from the current earthquake object and
-        // set this text on the name TextView
-        if (earthquake != null) {
-            dateTextView.setText(earthquake.getmDate());
-        } else {
-            dateTextView.setText("date is null");
-
-        }
+//        another way
+//        if (location.contains("of")) {
+//            locationOffset = location.substring(0, location.indexOf("of")+2);
+//            primaryLocation = location.substring(location.indexOf("of")+2, location.length());
+//
+//        } else if (!location.contains("of")){
+//            locationOffset = "Near the";
+//            primaryLocation = "Pacific-Antarctic Ridge";
+//        }
 
 
-//        // Find the ImageView in the list_item.xml layout with the ID list_item_icon
-//        ImageView iconView = (ImageView) listItemView.findViewById(R.id.list_item_icon);
-//        // Get the image resource ID from the current SearchHistory object and
-//        // set the image to iconView
-//        iconView.setImageResource(earthquake.getImageResourceId());
+        // Find the TextView with view ID magnitude
+        TextView magnitudeView = (TextView) listItemView.findViewById(R.id.magnitude);
+        // Format the date string (i.e. "6.5")
+        String formattedMagnitude = formatMagnitude(currentEarthquake.getMagnitude());
+        // Display the magnitude of the current earthquake in that TextView
+        magnitudeView.setText(formattedMagnitude);
 
-        // Return the whole list item layout (containing 2 TextViews and an ImageView)
-        // so that it can be shown in the ListView
+        // Set the proper background color on the magnitude circle.
+        // Fetch the background from the TextView, which is a GradientDrawable.
+        GradientDrawable magnitudeCircle = (GradientDrawable) magnitudeView.getBackground();
+
+        // Get the appropriate background color based on the current earthquake magnitude
+        int magnitudeColor = getMagnitudeColor(currentEarthquake.getMagnitude());
+
+        // Set the color on the magnitude circle
+        magnitudeCircle.setColor(magnitudeColor);
+
+
+        // Find the TextView with view ID location offset
+        TextView locationOff = (TextView) listItemView.findViewById(R.id.location_offset);
+        // Display the location of the current earthquake in that TextView
+        locationOff.setText(locationOffset);
+
+        // Find the TextView with view ID primary Location
+        TextView primaryLoc = (TextView) listItemView.findViewById(R.id.primary_location);
+        // Display the location of the current earthquake in that TextView
+        primaryLoc.setText(primaryLocation);
+
+
+        // Create a new Date object from the time in milliseconds of the earthquake
+        Date dateObject = new Date(currentEarthquake.getmTimeInMilliseconds());
+
+        // Find the TextView with view ID date
+        TextView dateView = (TextView) listItemView.findViewById(R.id.date);
+        // Format the date string (i.e. "Mar 3, 1984")
+        String formattedDate = formatDate(dateObject);
+        // Display the date of the current earthquake in that TextView
+        dateView.setText(formattedDate);
+
+        // Find the TextView with view ID time
+        TextView timeView = (TextView) listItemView.findViewById(R.id.time);
+        // Format the time string (i.e. "4:30PM")
+        String formattedTime = formatTime(dateObject);
+        // Display the time of the current earthquake in that TextView
+        timeView.setText(formattedTime);
+
+        // Return the list item view that is now showing the appropriate data
         return listItemView;
-
     }
+
+    /**
+     * Return the formatted date string (i.e. "Mar 3, 1984") from a Date object.
+     */
+    private String formatDate(Date dateObject) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("LLL dd, yyyy");
+        return dateFormat.format(dateObject);
+    }
+
+    /**
+     * Return the formatted date string (i.e. "4:30 PM") from a Date object.
+     */
+    private String formatTime(Date dateObject) {
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+        return timeFormat.format(dateObject);
+    }
+
+    /**
+     * Return the formatted magnitude string (i.e. "6.5") from a Date object.
+     */
+    private String formatMagnitude(double mag) {
+        DecimalFormat formatter = new DecimalFormat("0.0");
+        return formatter.format(mag);
+    }
+
+    private int getMagnitudeColor(double magnitude) {
+        switch ((int) magnitude) {
+            case 0:
+            case 1:
+                return ContextCompat.getColor(getContext(), R.color.magnitude1);
+
+            case 2:
+                return ContextCompat.getColor(getContext(), R.color.magnitude2);
+
+            case 3:
+                return ContextCompat.getColor(getContext(), R.color.magnitude3);
+
+            case 4:
+                return ContextCompat.getColor(getContext(), R.color.magnitude4);
+
+            case 5:
+                return ContextCompat.getColor(getContext(), R.color.magnitude5);
+
+            case 6:
+                return ContextCompat.getColor(getContext(), R.color.magnitude6);
+
+            case 7:
+                return ContextCompat.getColor(getContext(), R.color.magnitude7);
+
+            case 8:
+                return ContextCompat.getColor(getContext(), R.color.magnitude8);
+
+            case 9:
+                return ContextCompat.getColor(getContext(), R.color.magnitude9);
+
+            default:
+                return ContextCompat.getColor(getContext(), R.color.magnitude10plus);
+
+        }
+    }
+
 
 }
